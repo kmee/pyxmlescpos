@@ -8,6 +8,7 @@ import math
 import md5
 import re
 import traceback
+import binascii
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 
@@ -537,6 +538,29 @@ class Escpos:
             string = re.sub('\s+',' ',string)
             return string
 
+
+        def set_region(x_mm, y_mm, dx_mm, dy_mm):
+
+            tm = SLIP_TOP_MARGIN
+            w = SLIP_PRINTER_WIDTH
+            ws = min(SLIP_PAPER_DEFAULT_WIDTH, w)
+
+            def mm_to_pitch(mm, vertical=False):
+                pitch_mm = vertical and SLIP_PITCH_VERTICAL or SLIP_PITCH_HORIZONTAL
+                pitch = int(mm/pitch_mm)
+                hexa = format(pitch, '04x')
+                hexa = hexa[2:5]+hexa[0:2]
+                return binascii.unhexlify(hexa)
+
+            if x_mm > (dx_mm + tm):
+                y = mm_to_pitch(x_mm-dx_mm-tm)
+            else:
+                y = mm_to_pitch(0)
+            dy = mm_to_pitch(dx_mm)
+            x = mm_to_pitch(y_mm+(w-ws), vertical=True)
+            dx = mm_to_pitch(dy_mm, vertical=True)
+            return REGION + x + y + dx + dy
+
         def format_value(value, decimals=3, width=0, decimals_separator='.', thousands_separator=',', autoint=False, symbol='', position='after'):
             decimals = max(0,int(decimals))
             width    = max(0,int(width))
@@ -583,7 +607,26 @@ class Escpos:
                 stylestack.set(elem_styles[elem.tag])
             stylestack.set(elem.attrib)
 
-            if elem.tag in ('p','div','section','article','receipt','header','footer','li','h1','h2','h3','h4','h5'):
+            if 'x' in elem.attrib and 'y' in elem.attrib and \
+                'dx' in elem.attrib and 'dy' in elem.attrib:
+
+                def sanitize(attrib):
+                    return attrib.isdigit() and int(attrib) or 0
+
+                raw_region = set_region(
+                    sanitize(elem.attrib['x']),
+                    sanitize(elem.attrib['y']),
+                    sanitize(elem.attrib['dx']),
+                    sanitize(elem.attrib['dy']),
+                )
+                serializer.raw(raw_region)
+
+            if elem.tag in ('p','div','section','article','receipt','slip','header','footer','li','h1','h2','h3','h4','h5'):
+
+                if elem.tag == 'slip':
+                    landscape = 'landscape' in elem.attrib
+                    self.set_slip_mode(landscape=landscape)
+
                 serializer.start_block(stylestack)
                 serializer.text(elem.text)
                 for child in elem:
@@ -592,6 +635,10 @@ class Escpos:
                     serializer.text(child.tail)
                     serializer.end_entity()
                 serializer.end_entity()
+
+                if elem.tag == 'slip':
+                    self.set_slip_mode(activate=False)
+
 
             elif elem.tag in ('span','em','b','left','right'):
                 serializer.start_inline(stylestack)
@@ -891,6 +938,20 @@ class Escpos:
         else:
             raise CashDrawerError()
 
+    def set_slip_mode(self, activate=True, landscape=True):
+        if activate:
+            # Select slip printer
+            self.hw('PRINT_SLIP')
+            # Switch to page mode
+            self.hw('PAGE_MODE')
+            # Set orientation
+            if landscape:
+                self.hw('LANDSCAPE')
+        else:
+            # Print and recover to standard mode
+            self.control('FF')
+            # Select default printer
+            self.hw('PRINT_ROLL')
 
     def hw(self, hw):
         """ Hardware operations """
@@ -900,6 +961,15 @@ class Escpos:
             self._raw(HW_SELECT)
         elif hw.upper() == "RESET":
             self._raw(HW_RESET)
+        elif hw.upper() == "PRINT_SLIP":
+            self._raw(HW_PRINT_SLIP)
+        elif hw.upper() == "PRINT_ROLL":
+            self._raw(HW_PRINT_ROLL)
+        elif hw.upper() == "PAGE_MODE":
+            self._raw(HW_PAGE_MODE)
+        elif hw.upper() == "LANDSCAPE":
+            self._raw(HW_LANDSCAPE)
+
         else: # DEFAULT: DOES NOTHING
             pass
 
