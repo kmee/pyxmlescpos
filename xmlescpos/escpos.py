@@ -444,9 +444,9 @@ class Escpos:
             f.seek(0)
             img_rgba = Image.open(f)
             img = Image.new('RGB', img_rgba.size, (255,255,255))
-            channels = img_rgba.split()
-            if len(channels) > 1:
+            if img_rgba.mode == 'RGBA':
                 # use alpha channel as mask
+                channels = img_rgba.split()
                 img.paste(img_rgba, mask=channels[3])
             else:
                 img.paste(img_rgba)
