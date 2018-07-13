@@ -559,8 +559,8 @@ class Layout(object):
 
         # Finalize print actions: cut paper, open cashdrawer
         if self.open_crashdrawer:
-            self.printer.cashdraw(2)
-            self.printer.cashdraw(5)
+            printer.cashdraw(2)
+            printer.cashdraw(5)
 
         if 'cut' in root.attrib and root.attrib['cut'] == 'true':
             if self.slip_sheet_mode:
