@@ -525,6 +525,17 @@ class Layout(object):
             printer.barcode(strclean(elem.text), elem.attrib['encoding'])
             serializer.end_entity()
 
+        elif elem.tag == 'qr':
+            ec = int(elem.attrib.get('ec', QR_ECLEVEL_L))
+            size = int(elem.attrib.get('size', 3))
+            model = int(elem.attrib.get('model', QR_MODEL_2))
+            center = bool(elem.attrib.get('center', False))
+            native = bool(elem.attrib.get('native', False))
+            impl = elem.attrib.get('impl', 'bitImageRaster')
+            serializer.start_block(stylestack)
+            printer.qr(elem.text, ec, size, model, native, center, impl)
+            serializer.end_entity()
+
         elif elem.tag == 'cut':
             printer.cut()
 
