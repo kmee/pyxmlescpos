@@ -49,7 +49,7 @@ It uses python-escpos internally. So to print it, you'd do:
 
 ## Install
 
-    sudo pip install git+https://github.com/miracle2k/py-xml-escpos.git@0.2.0
+    sudo pip install git+https://github.com/akretion/py-xml-escpos.git
 
 
 # Documentation

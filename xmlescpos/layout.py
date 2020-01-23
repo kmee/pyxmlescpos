@@ -72,22 +72,22 @@ class StyleStack:
             # some style do not correspond to escpos command are used by
             # the serializer instead
             'align': {
-                'left': TXT_ALIGN_LT,
-                'right': TXT_ALIGN_RT,
-                'center': TXT_ALIGN_CT,
+                'left': TXT_STYLE['align']['left'],
+                'right': TXT_STYLE['align']['right'],
+                'center': TXT_STYLE['align']['center'],
                 '_order': 1,
             },
             'underline': {
-                'off': TXT_UNDERL_OFF,
-                'on': TXT_UNDERL_ON,
-                'double': TXT_UNDERL2_ON,
+                'off': TXT_STYLE['underline'].get(0),
+                'on': TXT_STYLE['underline'].get(1),
+                'double': TXT_STYLE['underline'].get(2),
                 # must be issued after 'size' command
                 # because ESC ! resets ESC -
                 '_order': 10,
             },
             'bold': {
-                'off': TXT_BOLD_OFF,
-                'on': TXT_BOLD_ON,
+                'off': TXT_STYLE['bold'].get(False),
+                'on': TXT_STYLE['bold'].get(True),
                 # must be issued after 'size' command
                 # because ESC ! resets ESC -
                 '_order': 10,
@@ -100,15 +100,15 @@ class StyleStack:
                 '_order': 10,
             },
             'size': {
-                'normal': TXT_NORMAL,
-                'double-height': TXT_2HEIGHT,
-                'double-width': TXT_2WIDTH,
-                'double': TXT_4SQUARE,
+                'normal': TXT_STYLE['size']['normal'],
+                'double-height': TXT_STYLE['size']['2h'],
+                'double-width': TXT_STYLE['size']['2w'],
+                'double': TXT_STYLE['size']['2x'],
                 '_order': 1,
             },
             'color': {
-                'black': TXT_COLOR_BLACK,
-                'red': TXT_COLOR_RED,
+                'black': TXT_STYLE['color']['black'],
+                'red': TXT_STYLE['color']['red'],
                 '_order': 1,
             }
         }
@@ -525,6 +525,17 @@ class Layout(object):
             printer.barcode(strclean(elem.text), elem.attrib['encoding'])
             serializer.end_entity()
 
+        elif elem.tag == 'qr':
+            ec = int(elem.attrib.get('ec', QR_ECLEVEL_L))
+            size = int(elem.attrib.get('size', 3))
+            model = int(elem.attrib.get('model', QR_MODEL_2))
+            center = bool(elem.attrib.get('center', False))
+            native = bool(elem.attrib.get('native', False))
+            impl = elem.attrib.get('impl', 'bitImageRaster')
+            serializer.start_block(stylestack)
+            printer.qr(elem.text, ec, size, model, native, center, impl)
+            serializer.end_entity()
+
         elif elem.tag == 'cut':
             printer.cut()
 
@@ -559,8 +570,8 @@ class Layout(object):
 
         # Finalize print actions: cut paper, open cashdrawer
         if self.open_crashdrawer:
-            self.printer.cashdraw(2)
-            self.printer.cashdraw(5)
+            printer.cashdraw(2)
+            printer.cashdraw(5)
 
         if 'cut' in root.attrib and root.attrib['cut'] == 'true':
             if self.slip_sheet_mode:
