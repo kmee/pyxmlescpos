@@ -8,5 +8,6 @@ device_list = [
     { 'vendor' : 0x04b8, 'product' : 0x0202, 'name' : 'Epson TM-T70' },
     { 'vendor' : 0x04b8, 'product' : 0x0e15, 'name' : 'Epson TM-T20II' },
     { 'vendor' : 0x04b8, 'product' : 0x0e28, 'name' : 'Epson TM-T20III' },
+    { 'vendor' : 0x04b8, 'product' : 0x0202, 'name' : 'Epson TM-P20' },
 ]
 
